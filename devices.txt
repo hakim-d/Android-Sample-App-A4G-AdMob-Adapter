@@ -1,0 +1,4 @@
+List of devices attached
+13061JEC211779	device
+emulator-5554	device
+
