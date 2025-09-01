@@ -29,6 +29,23 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/textview_versions"/>
+
+        <TextView
+            android:id="@+id/textview_versions"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:text="AdMob SDK: 24.1.0 | Ad4Game Adapter: 1.1.5"
+            android:textAlignment="center"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/textview_about"
             app:layout_constraintBottom_toTopOf="@id/textview_second"/>
 
         <TextView
@@ -44,19 +61,31 @@
             android:textSize="18sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/textview_about" />
+            app:layout_constraintTop_toBottomOf="@id/textview_versions" />
 
-        <com.google.android.gms.ads.admanager.AdManagerAdView
-            android:id="@+id/adView"
-            android:layout_width="wrap_content"
+        <FrameLayout
+            android:id="@+id/ad_container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#fefefe"
             android:elevation="20dp"
-            app:adSize="BANNER"
-            app:adUnitId="ca-app-pub-2451195056696095/8755584659"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/textview_second" />
+
+        <Spinner
+            android:id="@+id/publisher_spinner"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/spinner_background"
+            android:padding="8dp"
+            android:paddingEnd="40dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ad_container" />
 
         <ScrollView
             android:layout_width="match_parent"
@@ -66,7 +95,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/adView">
+            app:layout_constraintTop_toBottomOf="@+id/publisher_spinner">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -111,10 +140,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/reward_btn"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/button_check_adapter"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/button_first" />
+            
+        <Button
+            android:id="@+id/button_check_adapter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Check Ad4Game Status"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/button_reward" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

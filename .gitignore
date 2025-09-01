@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+admobadapter/
+launch_app.sh
+devices.txt
+publish_adapter.sh
