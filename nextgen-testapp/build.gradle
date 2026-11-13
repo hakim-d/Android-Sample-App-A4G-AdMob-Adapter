@@ -35,7 +35,7 @@ android {
 dependencies {
     // Client's setup: Next-Gen SDK 1.6.0 (adapter declares 1.5.0; must resolve upward).
     implementation 'com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.6.0'
-    implementation project(':admobadapter-nextgen')
+    implementation 'com.Ad4game:admobmanager-nextgen:1.0.0'
 }
 
 // Fail the build if the legacy SDK sneaks onto the classpath.
