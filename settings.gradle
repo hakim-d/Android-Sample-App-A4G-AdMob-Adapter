@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "A4G"
 include ':app'
 include ':admobadapter'  // Temporarily enabled for publishing
+include ':admobadapter-nextgen'
+include ':nextgen-testapp'
