@@ -1,16 +1,21 @@
 <resources>
-    <string name="app_name">A4G</string>
-    <string name="action_settings">Settings</string>
-    <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">A4G</string>
-    <string name="second_fragment_label">A4G</string>
-    <string name="next">Next</string>
-    <string name="interstitial_btn">Show Interstitial</string>
-    <string name="reward_btn">Get Rewarded</string>
-    <string name="previous">Previous</string>
-
-    <string name="about_first_fragment">Sample app to demo A4G Admob\nmediation adapter</string>
-    <string name="hello_first_fragment">Banner Ad</string>
-    <string name="hello_second_fragment">Interstitial Preview. Arg: %1$s</string>
-    <string name="copy">A4G © All Rights Reserved %1$s</string>
+    <string name="toolbar_title">A4G Mediation Tester</string>
+    <string name="format_banner">Banner</string>
+    <string name="format_interstitial">Interstitial</string>
+    <string name="format_rewarded">Rewarded</string>
+    <string name="mode_test_units">Google test units</string>
+    <string name="flow_title">How this impression was won</string>
+    <string name="flow_replay_chip">Replay · timings scaled</string>
+    <string name="flow_replay">Replay waterfall animation</string>
+    <string name="flow_footnote">Only sources the SDK actually called are shown. Order and eCPM are set in your AdMob mediation group.</string>
+    <string name="flow_idle">Tap Load. The ladder is built from AdMob\'s real response.</string>
+    <string name="flow_requesting_hint">Sources appear when AdMob responds.</string>
+    <string name="stage_placeholder">Ad will appear here</string>
+    <string name="load">Load</string>
+    <string name="reload">Reload</string>
+    <string name="destroy">Destroy</string>
+    <string name="show_now">Show now</string>
+    <string name="cancel">Cancel</string>
+    <string name="load_again">Load again</string>
+    <string name="sdk_starting">Starting SDK…</string>
 </resources>
