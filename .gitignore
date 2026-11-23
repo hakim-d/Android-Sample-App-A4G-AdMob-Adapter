@@ -18,3 +18,12 @@ admobadapter-nextgen/
 launch_app.sh
 devices.txt
 publish_adapter.sh
+# Signing keys
+*.keystore
+*.jks
+
+# IDE
+.idea/
+
+# Store assets and release bundles (contain private App IDs; keep local)
+store-listing/
