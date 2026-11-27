@@ -48,4 +48,18 @@ class LogicTest {
 
     @Test fun ad4gameMissingFromGroup() = assertEquals("Ad4Game isn't in this mediation group",
         VerdictEngine.evaluate(false, outcome(false, attempt("AdMob", "g", 10, 3), attempt("Meta", "f", 20, 1))).title)
+
+    @Test fun ownAd4gameUnitFills() {
+        val v = VerdictEngine.evaluate(false, outcome(true, attempt("Ad4Game", AD4GAME_CLASS, 900, win = true)), ad4gameUnit = true)
+        assertEquals(Status.SUCCESS, v.status); assertEquals("Your Ad4Game Unit ID fills", v.title)
+    }
+
+    @Test fun ownAd4gameUnitNoFillIsAWarningNotAnError() {
+        val v = VerdictEngine.evaluate(false, outcome(false, attempt("Ad4Game", AD4GAME_CLASS, 900, 3)), ad4gameUnit = true)
+        assertEquals(Status.WARNING, v.status); assertEquals("No fill in this tester", v.title)
+    }
+
+    @Test fun ownAd4gameUnitRejected() = assertEquals("This Unit ID was rejected",
+        VerdictEngine.evaluate(false, outcome(false, attempt("Ad4Game", AD4GAME_CLASS, 900, 1), kind = AdErrorKind.INVALID_REQUEST),
+            ad4gameUnit = true).title)
 }

@@ -83,7 +83,9 @@ class WaterfallFlowView(context: Context) : LinearLayout(context) {
     private var impressionAt: Long? = null
     private var rewardText: String? = null
 
-    data class Model(val appId: String, val outcome: LoadOutcome, val testUnits: Boolean, val loadedAt: Long, val demo: Boolean = false)
+    /** [demo]: the adapter is called directly (no AdMob mediation). [ownUnit]: with the publisher's own Ad4Game Unit ID. */
+    data class Model(val appId: String, val outcome: LoadOutcome, val testUnits: Boolean, val loadedAt: Long, val demo: Boolean = false,
+                     val ownUnit: Boolean = false)
 
     init {
         orientation = VERTICAL
@@ -151,22 +153,32 @@ class WaterfallFlowView(context: Context) : LinearLayout(context) {
 
     // ---------------------------------------------------------------- states
 
-    fun showIdle(appId: String, adUnit: String, demo: Boolean = false) {
+    private fun unitLabel(demo: Boolean, ownUnit: Boolean) = when {
+        ownUnit -> "Ad4Game Unit ID"
+        demo -> "Ad4Game parameter"
+        else -> "Ad unit"
+    }
+
+    fun showIdle(appId: String, adUnit: String, demo: Boolean = false, ownUnit: Boolean = false) {
         stopAll(); model = null
         ladder.reset()
         nodeApp = ladder.node("App ID", appId)
-        nodeUnit = ladder.node(if (demo) "Ad4Game parameter" else "Ad unit", adUnit)
-        nodeGroup = ladder.node("AdMob mediation", if (demo) "Bypassed: the demo calls Ad4Game directly" else "Waiting for a request")
+        nodeUnit = ladder.node(unitLabel(demo, ownUnit), adUnit)
+        nodeGroup = ladder.node("AdMob mediation", when {
+            ownUnit -> "Bypassed: Ad4Game is called directly"
+            demo -> "Bypassed: the demo calls Ad4Game directly"
+            else -> "Waiting for a request"
+        })
         ladder.addView(hint(context.getString(R.string.flow_idle)))
         setReplayControlsVisible(false)
         ladder.progressTo(null)
     }
 
-    fun showRequesting(appId: String, adUnit: String, demo: Boolean = false) {
+    fun showRequesting(appId: String, adUnit: String, demo: Boolean = false, ownUnit: Boolean = false) {
         stopAll(); model = null
         ladder.reset()
         nodeApp = ladder.node("App ID", appId).also { it.lit(R.color.brand_orange) }
-        nodeUnit = ladder.node(if (demo) "Ad4Game parameter" else "Ad unit", adUnit).also { it.lit(R.color.brand_orange) }
+        nodeUnit = ladder.node(unitLabel(demo, ownUnit), adUnit).also { it.lit(R.color.brand_orange) }
         nodeGroup = ladder.node(if (demo) "Direct adapter call" else "AdMob mediation", "Request sent").also { it.lit(R.color.brand_orange) }
         val t = hint("Requesting… 0.0 s")
         t.pixelText(14f, bold = true)
@@ -192,7 +204,9 @@ class WaterfallFlowView(context: Context) : LinearLayout(context) {
         model = m
         impressionAt = live.first; rewardText = live.second
         buildRows(m)
-        footnote.text = if (m.demo) "Demo: AdMob mediation is bypassed and Ad4Game is called directly with an Ad Manager demo unit. " +
+        footnote.text = if (m.ownUnit) "AdMob mediation is bypassed and the Ad4Game adapter loads your Ad4Game Unit ID directly. " +
+                "In your app, AdMob, AppLovin MAX or Unity LevelPlay requests it from your mediation setup."
+            else if (m.demo) "Demo: AdMob mediation is bypassed and Ad4Game is called directly with an Ad Manager demo unit. " +
                 "In a real app, AdMob calls Ad4Game from your mediation group, in the order you set there."
             else context.getString(R.string.flow_footnote)
         setReplayControlsVisible(true)
@@ -234,8 +248,8 @@ class WaterfallFlowView(context: Context) : LinearLayout(context) {
         val s = o.summary
         ladder.reset(); rungs.clear(); ghost = null
         nodeApp = ladder.node("App ID", m.appId)
-        nodeUnit = ladder.node(if (m.demo) "Ad4Game parameter" else "Ad unit", o.adUnitId)
-        nodeGroup = if (m.demo) ladder.node("Direct adapter call", "AdMob mediation bypassed (demo)") else ladder.node(
+        nodeUnit = ladder.node(unitLabel(m.demo, m.ownUnit), o.adUnitId)
+        nodeGroup = if (m.demo) ladder.node("Direct adapter call", if (m.ownUnit) "AdMob mediation bypassed" else "AdMob mediation bypassed (demo)") else ladder.node(
             "Mediation group",
             s?.mediationGroupName?.let { "\"$it\"" } ?: if (s == null) "No response" else "Name not reported"
         )

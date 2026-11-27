@@ -22,8 +22,8 @@ android {
     defaultConfig {
         minSdk 23
         targetSdk 36
-        versionCode 8
-        versionName "2.0.0"
+        versionCode 9
+        versionName "2.0.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -73,6 +73,7 @@ android {
     }
 
     buildTypes {
+        // "My Ad4Game Unit IDs" stays out too: publishers must not send requests to Ad4Game's network from this app.
         // "My ad units" (a publisher's live units inside this package) stays out of the Play build:
         // their units belong to their own app, so serving is unreliable and can trigger AdMob's
         // "Apps to confirm" review on their account. Debug/internal builds keep it for support work.

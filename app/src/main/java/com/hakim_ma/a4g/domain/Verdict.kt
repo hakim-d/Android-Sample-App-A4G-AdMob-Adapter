@@ -10,10 +10,12 @@ data class Verdict(val status: Status, val title: String, val body: String)
 
 /** Spec section 5: first matching rule wins. Pure Kotlin, no Android. */
 object VerdictEngine {
-    fun evaluate(testUnits: Boolean, o: LoadOutcome, demo: Boolean = false): Verdict {
+    fun evaluate(testUnits: Boolean, o: LoadOutcome, demo: Boolean = false, ad4gameUnit: Boolean = false): Verdict {
         val attempts = o.summary?.attempts.orEmpty()
         val a4g = attempts.firstOrNull { it.isAd4Game }
         val winner = o.summary?.winner
+
+        if (ad4gameUnit) return ad4gameUnitVerdict(o)
 
         if (demo) return if (o.success) Verdict(
             Status.SUCCESS, "Ad4Game adapter works",
@@ -69,6 +71,35 @@ object VerdictEngine {
                     "custom event ($AD4GAME_CLASS) to the group targeting this ad unit."
         )
         return Verdict(Status.NEUTRAL, "Result recorded", "See the waterfall for details.")
+    }
+
+    /** The publisher's own Ad4Game Unit ID, loaded through the adapter directly. */
+    private fun ad4gameUnitVerdict(o: LoadOutcome): Verdict {
+        if (o.success) return Verdict(
+            Status.SUCCESS, "Your Ad4Game Unit ID fills",
+            "The Ad4Game adapter loaded an ad from this Unit ID. On AdMob it goes in the Ad4Game custom event " +
+                    "Parameter; on AppLovin MAX and Unity LevelPlay, in the Google Ad Manager network setup."
+        )
+        val err = o.error
+        return when (err?.kind) {
+            AdErrorKind.INVALID_REQUEST -> Verdict(
+                Status.ERROR, "This Unit ID was rejected",
+                "Google Ad Manager didn't accept this Unit ID. Check it matches what your Ad4Game account manager " +
+                        "sent, character for character, and that it's for this ad format."
+            )
+            AdErrorKind.NETWORK_ERROR -> Verdict(
+                Status.ERROR, "No connection", "The request couldn't reach Google Ad Manager. Check the connection and try again."
+            )
+            AdErrorKind.TIMEOUT -> Verdict(
+                Status.WARNING, "No answer in time", "The Ad4Game adapter got no answer within 10 seconds. Try again."
+            )
+            else -> Verdict(
+                Status.WARNING, "No fill in this tester",
+                "The request worked but no ad came back. Ad4Game Unit IDs can be set to serve only in your own app, " +
+                        "so this doesn't mean your setup is wrong. Ask your account manager, then test in your app with " +
+                        "Ad Inspector (AdMob), the Mediation Debugger (MAX) or the Integration Test Suite (LevelPlay)."
+            )
+        }
     }
 
     fun explain(kind: AdErrorKind): Pair<String, String> = when (kind) {

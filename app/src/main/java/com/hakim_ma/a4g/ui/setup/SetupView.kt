@@ -45,6 +45,7 @@ class SetupView(context: Context, private val app: A4GApplication, private val o
     private val deviceButton = PixelButton(context)
     private val deviceStatus = TextView(context)
     private val unitFields = mutableMapOf<AdFormat, Pair<EditText, TextView>>()
+    private val a4gFields = mutableMapOf<AdFormat, Pair<EditText, TextView>>()
     private val hashedId = TestDevice.hashedId(context)
 
     init {
@@ -70,6 +71,9 @@ class SetupView(context: Context, private val app: A4GApplication, private val o
                 "Runs the Ad4Game adapter directly with Google's Ad Manager demo units. Shows the adapter working end to end with test creatives."))
             add(Triple(UnitMode.TEST_UNITS, "Google test units",
                 "Real AdMob mediation with Google's test ad units. Proves the SDK works, but never calls Ad4Game."))
+            if (publisherUnits) add(Triple(UnitMode.MY_AD4GAME_UNITS, "My Ad4Game Unit IDs",
+                "Checks that Ad4Game Unit IDs fill, through the Ad4Game adapter, as test requests on a registered test " +
+                        "device. Works for AdMob, AppLovin MAX and Unity LevelPlay setups. Internal builds only."))
             if (publisherUnits) add(Triple(UnitMode.MY_UNITS, "My ad units",
                 "Your own AdMob ad units, as test requests on a registered test device. Internal builds only."))
         }
@@ -83,9 +87,10 @@ class SetupView(context: Context, private val app: A4GApplication, private val o
         content.addView(card("Mode", modeCol), lp(top = 16))
 
         if (publisherUnits) {
-            // 3. App ID.  4. Test device.  5. Ad units.
-            content.addView(card("App ID", appIdSection()), lp(top = 16))
+            // Internal builds only. 3. Ad4Game Unit IDs.  4. Test device (needed by every live mode).  5. App ID.  6. AdMob ad units.
+            content.addView(card("My Ad4Game Unit IDs", ad4gameUnitsSection()), lp(top = 16))
             content.addView(card("Test device", testDeviceSection()), lp(top = 16))
+            content.addView(card("App ID", appIdSection()), lp(top = 16))
             content.addView(card("My ad units", adUnitsSection()), lp(top = 16))
         }
 
@@ -171,8 +176,27 @@ class SetupView(context: Context, private val app: A4GApplication, private val o
             refresh(); onChanged()
         }
         col.addView(deviceButton, lp(top = 10))
-        col.addView(body("Test requests from your live ad units don't count as real traffic, so testing can't get your AdMob account flagged. " +
-                "Ad4Game and other mediated sources may still serve real creatives: never click them."), lp(top = 8))
+        col.addView(body("Test requests from your live units don't count as real traffic. " +
+                "Ad4Game and other sources may still serve real creatives: never click them."), lp(top = 8))
+        return col
+    }
+
+    private fun ad4gameUnitsSection(): View {
+        val col = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(body("The Ad4Game Unit IDs your account manager sent you, one per format. Leave a format empty to skip it."))
+        AdFormat.entries.forEach { f ->
+            col.addView(TextView(context).apply { text = f.label; pixelText(15f, bold = true) }, lp(top = if (f == AdFormat.BANNER) 10 else 12))
+            val (field, error) = field("/12345678/my_game_${f.name.lowercase()}", config.ad4gameUnit(f))
+            field.addTextChangedListener(watcher { showA4gError(f) })
+            a4gFields[f] = field to error
+            col.addView(field, lp(top = 4)); col.addView(error)
+        }
+        col.addView(body("A fill here means the Unit ID works. No fill doesn't always mean a problem: a Unit ID can be set " +
+                "to serve only in your own app."), lp(top = 10))
+        col.addView(PixelButton(context).apply {
+            text = "Save Unit IDs"; textSize = 18f
+            setOnClickListener { saveA4gUnits() }
+        }, lp(top = 12))
         return col
     }
 
@@ -226,6 +250,28 @@ class SetupView(context: Context, private val app: A4GApplication, private val o
         refresh(); onChanged()
     }
 
+    private fun showA4gError(f: AdFormat): Boolean {
+        val (field, error) = a4gFields.getValue(f)
+        val err = Validator.ad4gameUnitError(field.text.toString())
+        error.text = err ?: ""
+        error.visibility = if (err == null) GONE else VISIBLE
+        return err == null
+    }
+
+    private fun saveA4gUnits() {
+        val ok = AdFormat.entries.map { showA4gError(it) }.all { it }
+        if (!ok) {
+            a4gFields.values.firstOrNull { it.second.visibility == VISIBLE }?.first?.requestFocus()
+            return
+        }
+        AdFormat.entries.forEach { config.setAd4gameUnit(it, a4gFields.getValue(it).first.text.toString()) }
+        val any = AdFormat.entries.any { config.ad4gameUnit(it).isNotEmpty() }
+        config.mode = if (any) UnitMode.MY_AD4GAME_UNITS
+            else if (config.mode == UnitMode.MY_AD4GAME_UNITS) UnitMode.AD4GAME_DEMO else config.mode
+        Toast.makeText(context, if (any) "Unit IDs saved. Using your Ad4Game Unit IDs." else "Unit IDs cleared.", Toast.LENGTH_SHORT).show()
+        refresh(); onChanged()
+    }
+
     private fun restartApp() {
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return
         context.startActivity(Intent.makeRestartActivityTask(launch.component))
@@ -248,22 +294,28 @@ class SetupView(context: Context, private val app: A4GApplication, private val o
             b.contentDescription = b.text.toString() + if (on) ", selected" else ""
         }
         checklist.removeAllViews()
-        if (!publisherUnits || mode != UnitMode.MY_UNITS) {
-            when (mode) {
-                UnitMode.AD4GAME_DEMO -> {
-                    checkRow(true, "Ad4Game adapter ${app.engine.info.adapterVersion} in this build")
-                    checkRow(true, "Called directly with Ad Manager demo units")
-                    checkRow(true, "Test creatives only: no live traffic")
-                }
-                else -> {
-                    checkRow(true, "AdMob mediation with Google test units")
-                    checkRow(false, "Google test units never call Ad4Game")
-                }
+        val registered = hashedId in config.testDeviceIds
+        val protectedDevice = registered || TestDevice.isEmulator
+        when (mode) {
+            UnitMode.AD4GAME_DEMO -> {
+                checkRow(true, "Ad4Game adapter ${app.engine.info.adapterVersion} in this build")
+                checkRow(true, "Called directly with Ad Manager demo units")
+                checkRow(true, "Test creatives only: no live traffic")
             }
+            UnitMode.TEST_UNITS -> {
+                checkRow(true, "AdMob mediation with Google test units")
+                checkRow(false, "Google test units never call Ad4Game")
+            }
+            UnitMode.MY_AD4GAME_UNITS -> {
+                val n = AdFormat.entries.count { config.ad4gameUnit(it).isNotEmpty() }
+                checkRow(true, "Ad4Game adapter ${app.engine.info.adapterVersion}, called directly")
+                checkRow(n > 0, "$n of 3 Ad4Game Unit IDs set")
+                checkRow(protectedDevice, if (protectedDevice) "Test device protected" else "Device not registered as a test device")
+            }
+            UnitMode.MY_UNITS -> Unit // filled below
         }
         if (!publisherUnits) return
 
-        val registered = hashedId in config.testDeviceIds
         deviceButton.text = if (registered) "Unregister this device" else "Register this device"
         if (registered) deviceButton.style(R.color.surface, R.color.surface, R.color.on_surface)
         else deviceButton.style(R.color.brand_orange, R.color.brand_orange_light)
@@ -277,7 +329,7 @@ class SetupView(context: Context, private val app: A4GApplication, private val o
             else -> R.color.status_error
         }))
 
-        if (mode != UnitMode.MY_UNITS) return
+        if (!publisherUnits || mode != UnitMode.MY_UNITS) return
         val units = AdFormat.entries.count { config.unit(it).isNotEmpty() }
         val customAppId = app.appId != GoogleTest.APP_ID
         checkRow(true, "Using my ad units")
