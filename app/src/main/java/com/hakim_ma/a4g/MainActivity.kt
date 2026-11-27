@@ -71,12 +71,17 @@ class MainActivity : AppCompatActivity() {
     private var cooldownTick: Runnable? = null
 
     private val myUnits get() = config.mode == UnitMode.MY_UNITS
-    private val demo get() = config.mode == UnitMode.AD4GAME_DEMO
+    private val myAd4gameUnits get() = config.mode == UnitMode.MY_AD4GAME_UNITS
+    /** Modes that call the Ad4Game adapter directly instead of going through AdMob mediation. */
+    private val demo get() = config.mode == UnitMode.AD4GAME_DEMO || myAd4gameUnits
+    /** Modes that send live requests, so they need a test device, a cooldown and a click warning. */
+    private fun isLive(m: UnitMode) = m == UnitMode.MY_UNITS || m == UnitMode.MY_AD4GAME_UNITS
     private val isTestDevice get() = hashedId in config.testDeviceIds || TestDevice.isEmulator
     private fun unitFor(f: AdFormat) = when (config.mode) {
         UnitMode.AD4GAME_DEMO -> GoogleTest.ad4gameDemoParams.getValue(f)
         UnitMode.TEST_UNITS -> GoogleTest.units.getValue(f)
         UnitMode.MY_UNITS -> config.unit(f)
+        UnitMode.MY_AD4GAME_UNITS -> config.ad4gameUnit(f)
     }
 
     private lateinit var envMode: TextView
@@ -129,7 +134,7 @@ class MainActivity : AppCompatActivity() {
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(color(R.color.surface)) }
 
         val toolbar = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; setBackgroundColor(color(R.color.brand_orange))
+            orientation = LinearLayout.VERTICAL; setBackgroundColor(color(R.color.header))
         }
         // Title row: app name on the left, the white A4G cube on the right.
         val title = LinearLayout(this).apply {
@@ -137,7 +142,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(16), dp(14), dp(16), dp(14))
         }
         title.addView(TextView(this).apply {
-            text = getString(R.string.toolbar_title); pixelText(20f, bold = true, colorRes = R.color.on_brand); isAllCaps = true
+            text = getString(R.string.toolbar_title); pixelText(20f, bold = true, colorRes = R.color.on_header); isAllCaps = true
         }, LinearLayout.LayoutParams(0, -2, 1f))
         title.addView(ImageView(this).apply {
             setImageResource(R.drawable.a4g_logo_white)
@@ -145,7 +150,8 @@ class MainActivity : AppCompatActivity() {
             contentDescription = "Ad4Game"
         }, LinearLayout.LayoutParams(-2, dp(30)))
         toolbar.addView(title)
-        toolbar.addView(View(this).apply { setBackgroundColor(color(R.color.outline)) }, LinearLayout.LayoutParams(-1, (px() * 2).toInt()))
+        // Orange rule under the navy header, like the website's reading bar
+        toolbar.addView(View(this).apply { setBackgroundColor(color(R.color.brand_orange)) }, LinearLayout.LayoutParams(-1, (px() * 2).toInt()))
         root.addView(toolbar)
 
         // Environment strip: which SDK, which adapter, which mode, test device. Always visible.
@@ -162,7 +168,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(8), dp(4), dp(10), dp(6))
         })
         row1.addView(TextView(this).apply {
-            text = "${i.sdkName} ${i.sdkVersion} · Adapter ${i.adapterVersion}"
+            text = "${i.sdkName} ${i.sdkVersion} · Ad4Game Adapter ${i.adapterVersion}"
             pixelText(16f) // data, not a heading: readable body face
         }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10) })
         env.addView(row1)
@@ -292,16 +298,17 @@ class MainActivity : AppCompatActivity() {
         envMode.text = when (config.mode) {
             UnitMode.AD4GAME_DEMO -> "Ad4Game demo"; UnitMode.TEST_UNITS -> getString(R.string.mode_test_units)
             UnitMode.MY_UNITS -> "My ad units"
+            UnitMode.MY_AD4GAME_UNITS -> "My Ad4Game units"
         }
         envMode.background = panel(when (config.mode) {
             UnitMode.AD4GAME_DEMO -> R.color.brand_orange_light; UnitMode.TEST_UNITS -> R.color.status_neutral_container
-            UnitMode.MY_UNITS -> R.color.primary_container
+            UnitMode.MY_UNITS, UnitMode.MY_AD4GAME_UNITS -> R.color.primary_container
         }, shadow = false)
-        envDevice.visibility = if (myUnits) View.VISIBLE else View.GONE
+        envDevice.visibility = if (isLive(config.mode)) View.VISIBLE else View.GONE
         envDevice.text = if (isTestDevice) "Test device" else "Not a test device"
         envDevice.setTextColor(color(if (isTestDevice) R.color.status_success else R.color.status_error))
         envDevice.background = panel(if (isTestDevice) R.color.status_success_container else R.color.status_error_container, shadow = false)
-        liveBanner.visibility = if (myUnits && !isTestDevice) View.VISIBLE else View.GONE
+        liveBanner.visibility = if (isLive(config.mode) && !isTestDevice) View.VISIBLE else View.GONE
 
         // Adapter chip. The SDK only initializes adapters listed in this App ID's mediation config;
         // the demo calls the adapter directly, so mediation status doesn't apply there.
@@ -310,7 +317,8 @@ class MainActivity : AppCompatActivity() {
         val (text, fill, desc) = when {
             snap == null -> Triple(getString(R.string.sdk_starting), R.color.status_neutral_container, null)
             missing -> Triple("A4G adapter missing", R.color.status_error_container, null)
-            demo -> Triple("A4G called directly", R.color.status_success_container,
+            // Shorter in live modes: the test device chip shares the row.
+            demo -> Triple(if (myAd4gameUnits) "A4G direct" else "A4G called directly", R.color.status_success_container,
                 "Ad4Game adapter is called directly, without AdMob mediation")
             snap.adapterFound -> Triple("A4G ${snap.adapterState} · ${snap.adapterLatencyMs} ms", R.color.status_success_container, null)
             else -> Triple("A4G not configured", R.color.status_neutral_container,
@@ -356,9 +364,10 @@ class MainActivity : AppCompatActivity() {
         verdictCard.visibility = View.GONE
 
         if (st.phase == Phase.IDLE && unit.isEmpty()) {
-            stage.setPlaceholderText("No ${current.label.lowercase()} ad unit yet")
+            stage.setPlaceholderText(if (myAd4gameUnits) "No ${current.label.lowercase()} Ad4Game Unit ID yet"
+                else "No ${current.label.lowercase()} ad unit yet")
             setChip("Not set", Status.NEUTRAL, R.drawable.ic_info)
-            primary.text = "Add ad unit"; primary.isEnabled = true
+            primary.text = if (myAd4gameUnits) "Add Unit ID" else "Add ad unit"; primary.isEnabled = true
             flow.showIdle(app.appId, "Not set")
             return
         }
@@ -367,12 +376,12 @@ class MainActivity : AppCompatActivity() {
             Phase.IDLE -> {
                 setChip(if (sdkReady) "Ready to load" else getString(R.string.sdk_starting), Status.NEUTRAL, R.drawable.ic_info)
                 primary.text = if (sdkReady) getString(R.string.load) else getString(R.string.sdk_starting)
-                flow.showIdle(app.appId, unit, demo)
+                flow.showIdle(app.appId, unit, demo, myAd4gameUnits)
             }
             Phase.LOADING -> {
                 setChip("Requesting…", Status.NEUTRAL, R.drawable.ic_info)
                 primary.text = "Loading…"
-                flow.showRequesting(app.appId, unit, demo)
+                flow.showRequesting(app.appId, unit, demo, myAd4gameUnits)
             }
             Phase.LOADED, Phase.FAILED, Phase.SHOWN -> {
                 o!!
@@ -401,13 +410,17 @@ class MainActivity : AppCompatActivity() {
                         secondary.text = getString(R.string.load_again); secondary.visibility = View.VISIBLE
                     }
                 }
-                val v = VerdictEngine.evaluate(testUnits = st.usedMode == UnitMode.TEST_UNITS, o, demo = st.usedMode == UnitMode.AD4GAME_DEMO)
+                val ownUnit = st.usedMode == UnitMode.MY_AD4GAME_UNITS
+                val direct = st.usedMode == UnitMode.AD4GAME_DEMO || ownUnit
+                val v = VerdictEngine.evaluate(testUnits = st.usedMode == UnitMode.TEST_UNITS, o,
+                    demo = st.usedMode == UnitMode.AD4GAME_DEMO, ad4gameUnit = ownUnit)
                 showVerdict(v.status, v.title, v.body)
                 if (o.success && st.usedMode == UnitMode.MY_UNITS && o.summary?.winner?.sourceName?.contains("AdMob") != true) {
                     verdictBody.append("\n\nMediated ads (including Ad4Game) may be real ads even on a test device. Don't click them.")
                 }
+                if (o.success && ownUnit) verdictBody.append("\n\nThis can be a real Ad4Game ad, even on a test device. Don't click it.")
                 flow.showResult(WaterfallFlowView.Model(app.appId, o, testUnits = st.usedMode == UnitMode.TEST_UNITS,
-                    loadedAt = st.loadedAt, demo = st.usedMode == UnitMode.AD4GAME_DEMO), animate, st.impressionAt to st.rewardText)
+                    loadedAt = st.loadedAt, demo = direct, ownUnit = ownUnit), animate, st.impressionAt to st.rewardText)
             }
         }
         applyCooldown(st)
@@ -486,11 +499,15 @@ class MainActivity : AppCompatActivity() {
                 setChip("Not sent: App ID mismatch", Status.ERROR, R.drawable.ic_error)
                 return
             }
+        }
+        if (isLive(config.mode)) {
             // Live units only as test requests: no "load anyway".
             if (!isTestDevice) {
                 MaterialAlertDialogBuilder(this)
                     .setTitle("Register this device first")
-                    .setMessage("Your ad units are live. Requests from an unregistered device count as real traffic, and " +
+                    .setMessage(if (myAd4gameUnits) "Your Ad4Game Unit IDs are live. Requests from an unregistered device count as " +
+                            "real traffic, and clicking the ads counts as invalid traffic. Register this device as a test device to continue."
+                        else "Your ad units are live. Requests from an unregistered device count as real traffic, and " +
                             "clicking your own ads can get your AdMob account limited. Register this device as a test device to continue.")
                     .setPositiveButton("Register this device") { _, _ ->
                         config.testDeviceIds = config.testDeviceIds + hashedId
@@ -517,7 +534,7 @@ class MainActivity : AppCompatActivity() {
             st.outcome = o
             st.loadedAt = System.currentTimeMillis()
             st.phase = if (o.success) Phase.LOADED else Phase.FAILED
-            if (st.usedMode == UnitMode.MY_UNITS) st.cooldownUntil = SystemClock.elapsedRealtime() + 10_000
+            if (isLive(st.usedMode)) st.cooldownUntil = SystemClock.elapsedRealtime() + 10_000
             if (o.success && f == AdFormat.BANNER) {
                 st.bannerView = engine.bannerView(o.handle!!) { ev ->
                     when (ev) {
@@ -536,12 +553,12 @@ class MainActivity : AppCompatActivity() {
                 scroll.post { scroll.smoothScrollTo(0, (flow.top - dp(12)).coerceAtLeast(0)) }
             }
         }
-        if (st.usedMode == UnitMode.AD4GAME_DEMO) engine.directLoad(f, unitFor(f), this, onResult)
+        if (st.usedMode == UnitMode.AD4GAME_DEMO || st.usedMode == UnitMode.MY_AD4GAME_UNITS) engine.directLoad(f, unitFor(f), this, onResult)
         else engine.load(f, unitFor(f), this, onResult)
     }
 
     private fun clickGuard(st: FormatState) {
-        if (st.usedMode != UnitMode.MY_UNITS) return
+        if (!isLive(st.usedMode)) return
         Snackbar.make(scroll, "Ad click recorded on a live ad. Avoid clicking ads on your own units.", Snackbar.LENGTH_LONG).show()
     }
 

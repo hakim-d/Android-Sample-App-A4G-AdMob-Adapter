@@ -8,7 +8,16 @@ import com.hakim_ma.a4g.BuildConfig
 import com.hakim_ma.a4g.engine.AdFormat
 import java.security.MessageDigest
 
-enum class UnitMode { AD4GAME_DEMO, TEST_UNITS, MY_UNITS }
+/**
+ * AD4GAME_DEMO: the adapter called directly with Ad Manager demo units.
+ * TEST_UNITS: AdMob mediation with Google's test units (never reaches Ad4Game).
+ * MY_UNITS: the publisher's own AdMob units (internal builds only, see PUBLISHER_UNITS).
+ * MY_AD4GAME_UNITS: Ad4Game Unit IDs, loaded through the adapter directly. Ad4Game Unit IDs are Ad Manager
+ *   units in Ad4Game's network, so this works whichever mediation platform the publisher uses.
+ *   Internal builds only (PUBLISHER_UNITS): publishers must not send requests to Ad4Game's network
+ *   from the public app.
+ */
+enum class UnitMode { AD4GAME_DEMO, TEST_UNITS, MY_UNITS, MY_AD4GAME_UNITS }
 
 /** Google's sample App ID and test ad units: safe, never reach Ad4Game. */
 object GoogleTest {
@@ -34,11 +43,12 @@ object GoogleTest {
 class ConfigRepository(context: Context) {
     private val prefs = context.getSharedPreferences("config", Context.MODE_PRIVATE)
 
-    /** Defaults to the Ad4Game demo. "My ad units" only exists in builds with PUBLISHER_UNITS. */
+    /** Defaults to the Ad4Game demo. "My ad units" and "My Ad4Game Unit IDs" only exist in builds with PUBLISHER_UNITS. */
     var mode: UnitMode
         get() {
             val m = runCatching { UnitMode.valueOf(prefs.getString("mode", null)!!) }.getOrDefault(UnitMode.AD4GAME_DEMO)
-            return if (m == UnitMode.MY_UNITS && !BuildConfig.PUBLISHER_UNITS) UnitMode.AD4GAME_DEMO else m
+            val internalOnly = m == UnitMode.MY_UNITS || m == UnitMode.MY_AD4GAME_UNITS
+            return if (internalOnly && !BuildConfig.PUBLISHER_UNITS) UnitMode.AD4GAME_DEMO else m
         }
         set(v) = prefs.edit().putString("mode", v.name).apply()
 
@@ -52,6 +62,10 @@ class ConfigRepository(context: Context) {
     fun unit(f: AdFormat): String = prefs.getString("unit_${f.name}", "")!!
     fun setUnit(f: AdFormat, v: String) = prefs.edit().putString("unit_${f.name}", v.trim()).apply()
 
+    /** The publisher's Ad4Game Unit ID for [f] (an Ad Manager unit path). Empty = not set. */
+    fun ad4gameUnit(f: AdFormat): String = prefs.getString("a4g_unit_${f.name}", "")!!
+    fun setAd4gameUnit(f: AdFormat, v: String) = prefs.edit().putString("a4g_unit_${f.name}", v.trim()).apply()
+
     var testDeviceIds: Set<String>
         get() = prefs.getStringSet("testDevices", emptySet())!!.toSet()
         set(v) = prefs.edit().putStringSet("testDevices", v).apply()
@@ -64,6 +78,8 @@ object Validator {
     private val UNIT = Regex("^ca-app-pub-\\d{16}/\\d{10}$")
     private val APP = Regex("^ca-app-pub-\\d{16}~\\d{10}$")
     private val PUB = Regex("ca-app-pub-(\\d{16})")
+    /** Ad Manager unit path: /network[,child network]/code[/code...]. */
+    private val A4G_UNIT = Regex("^/\\d+(,\\d+)?(/[^/\\s,]+)+$")
 
     /** null = valid (or empty, which means "not set"). */
     fun adUnitError(v: String): String? {
@@ -75,6 +91,18 @@ object Validator {
                 "That looks like the Ad4Game Parameter from your custom event, not an AdMob ad unit ID."
             s.contains(' ') -> "Remove the spaces."
             else -> "Expected ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN (16 digits, slash, 10 digits)."
+        }
+    }
+
+    /** null = valid (or empty, which means "not set"). */
+    fun ad4gameUnitError(v: String): String? {
+        val s = v.trim()
+        return when {
+            s.isEmpty() || A4G_UNIT.matches(s) -> null
+            s.startsWith("ca-app-pub-") ->
+                "That's an AdMob ID. Ad4Game Unit IDs start with / (for example /12345678/my_game_banner)."
+            s.contains(' ') -> "Remove the spaces."
+            else -> "Expected an Ad4Game Unit ID like /12345678/my_game_banner, as sent by your account manager."
         }
     }
 

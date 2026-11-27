@@ -14,7 +14,8 @@
         <item name="android:colorBackground">@color/surface</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <!-- Light icons: the status bar sits on the navy header -->
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="TextAppearance.A4G.Mono" parent="TextAppearance.Material3.BodyMedium">

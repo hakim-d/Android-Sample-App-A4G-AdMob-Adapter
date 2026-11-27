@@ -1,36 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Pixel palette: Ad4Game orange on a warm cream "game UI" base, dark-brown 1px outlines
-         (same outline/cream as Hanout). Orange always carries dark text. -->
-    <color name="brand_orange">#FF8800</color>
-    <color name="brand_orange_light">#FFB45C</color>
-    <color name="brand_orange_dark">#B85C00</color>
-    <color name="brand_orange_16">#33FF8800</color>
-    <color name="on_brand">#2B1A12</color>
+    <!-- Pixel palette from the Ad4Game website (redesign-v3 styles.css): Pure Orange #FFA500 accents,
+         Deep Slate Navy #1E293B for the header, text and outlines, Off-White / White surfaces,
+         Charcoal Slate #475569 for secondary text. Orange always carries navy text (7.4:1). -->
+    <color name="brand_orange">#FFA500</color>
+    <color name="brand_orange_light">#FFB52E</color>
+    <color name="brand_orange_dark">#F28C00</color>
+    <color name="brand_orange_16">#33FFA500</color>
+    <color name="on_brand">#1E293B</color>
 
-    <color name="outline">#2B1A12</color>
-    <color name="shadow">#592B1A12</color>
-    <color name="surface">#F4ECD8</color>
-    <color name="surface_container">#E9DCC0</color>
-    <color name="surface_container_high">#FFFAEE</color>
-    <color name="on_surface">#2B1A12</color>
-    <color name="on_surface_variant">#6B4226</color>
-    <color name="skeleton">#D9CBA8</color>
-    <color name="primary">#A04F00</color>
+    <!-- App header: navy, like the website's dark surfaces -->
+    <color name="header">#1E293B</color>
+    <color name="on_header">#F8FAFC</color>
+
+    <color name="outline">#1E293B</color>
+    <color name="shadow">#591E293B</color>
+    <color name="surface">#F8FAFC</color>
+    <color name="surface_container">#E2E8F0</color>
+    <color name="surface_container_high">#FFFFFF</color>
+    <color name="on_surface">#1E293B</color>
+    <color name="on_surface_variant">#475569</color>
+    <color name="skeleton">#CBD5E1</color>
+    <color name="primary">#9A4D00</color>
     <color name="on_primary">#FFFFFF</color>
-    <color name="primary_container">#FFDCC4</color>
-    <color name="on_primary_container">#331200</color>
-    <color name="outline_variant">#C9B48C</color>
+    <color name="primary_container">#FFF4E0</color>
+    <color name="on_primary_container">#1E293B</color>
+    <color name="outline_variant">#94A3B8</color>
 
-    <color name="status_success">#2C6E49</color>
-    <color name="status_success_container">#C8EBCF</color>
-    <color name="status_warning">#8F3A1F</color>
-    <color name="status_warning_container">#FBE3B0</color>
-    <color name="status_error">#B3261E</color>
-    <color name="status_error_container">#F6CFC8</color>
-    <color name="status_neutral">#5C4A3D</color>
-    <color name="status_neutral_container">#E3D7C1</color>
+    <color name="status_success">#15803D</color>
+    <color name="status_success_container">#DCFCE7</color>
+    <color name="status_warning">#9A4D00</color>
+    <color name="status_warning_container">#FFF4E0</color>
+    <color name="status_error">#C2410C</color>
+    <color name="status_error_container">#FFEDD5</color>
+    <color name="status_neutral">#475569</color>
+    <color name="status_neutral_container">#E2E8F0</color>
 
-    <color name="pulse">#1F5FA8</color>
-    <color name="scrim">#EB1C1410</color>
+    <color name="pulse">#3B82F6</color>
+    <color name="scrim">#EB1E293B</color>
 </resources>

@@ -60,7 +60,7 @@ class DirectAdapter(private val context: Context) {
             val ms = SystemClock.elapsedRealtime() - start
             val handle = ad?.let { AdHandle(handleId, format).also { h -> ads[h.id] = it; forwarders[h.id] = fwd } }
             val attempt = AdapterAttempt(
-                sourceName = "Ad4Game", instanceName = "Direct adapter demo", adapterClassName = AD4GAME_CLASS,
+                sourceName = "Ad4Game", instanceName = "Direct adapter call", adapterClassName = AD4GAME_CLASS,
                 latencyMs = ms, error = err?.let { AttemptError(it.code, it.domain, it.message) },
                 isWinner = ad != null, credentials = mapOf("parameter" to parameter),
             )
