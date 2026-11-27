@@ -256,7 +256,9 @@ class WaterfallFlowView(context: Context) : LinearLayout(context) {
         terminal = if (o.success) ladder.node("Ad ready", clock.format(Date(m.loadedAt))) else
             ladder.node("No ad", o.error?.let { "${it.kind.name.lowercase().replace('_', ' ')} (${it.code})" } ?: "")
         if (o.success) {
-            impression = ladder.node("Impression", "waiting")
+            // A banner only logs its impression once it is on screen, and the screen has scrolled down to this ladder
+            impression = ladder.node("Impression",
+                if (o.format == AdFormat.BANNER) "waiting: scroll up for the impression to log" else "waiting")
             reward = if (o.format == AdFormat.REWARDED) ladder.node("Reward", "waiting") else null
         } else { impression = null; reward = null }
     }
